@@ -114,7 +114,6 @@ def run_health_check_for_user(user_id: int):
             (mon_id,)
         ).fetchone()
 
-        # Kasus A: Server jatuh (DOWN) dan belum ada insiden terbuka
         if not is_up and not active_inc:
             err_msg = err or f"HTTP Status {status_code}"
             c.execute("""
@@ -127,7 +126,7 @@ def run_health_check_for_user(user_id: int):
                     webhook_url=webhook_url,
                     title="🚨 INCIDENT ALERT: Service is DOWN",
                     description=f"Endpoint **{mon['name']}** mengalami kegagalan akses dan tidak merespon dengan baik.",
-                    color=15158332, # Merah (#e74c3c)
+                    color=15158332,
                     fields=[
                         {"name": "Nama Layanan", "value": mon["name"], "inline": True},
                         {"name": "Status Error", "value": f"`{err_msg}`", "inline": True},
@@ -136,7 +135,6 @@ def run_health_check_for_user(user_id: int):
                     ]
                 )
 
-        # Kasus B: Server pulih (RESOLVED) dari downtime
         elif is_up and active_inc:
             inc_id = active_inc["id"]
             start_dt = datetime.strptime(active_inc["started_at"], "%Y-%m-%d %H:%M:%S")
@@ -154,14 +152,13 @@ def run_health_check_for_user(user_id: int):
                     webhook_url=webhook_url,
                     title="✅ INCIDENT RESOLVED: Service Back Online",
                     description=f"Endpoint **{mon['name']}** telah pulih dan kembali operasional.",
-                    color=3066993, # Hijau (#2ecc71)
+                    color=3066993,
                     fields=[
                         {"name": "Nama Layanan", "value": mon["name"], "inline": True},
                         {"name": "Total Downtime", "value": f"~{duration} Menit", "inline": True},
                         {"name": "Latensi Pemulihan", "value": f"{latency} ms", "inline": True},
                         {"name": "URL Target", "value": mon["url"], "inline": False}
                     ]
-                ]
                 )
 
     conn.commit()
