@@ -8,8 +8,8 @@ import engine
 import ui_helpers
 
 st.set_page_config(
-    page_title="PulseWatch",
-    page_icon="⚡",
+    page_title="SentinelCore",
+    page_icon="📡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -32,10 +32,10 @@ if query_view == "status":
     uptime_val = round((up / tot) * 100, 1) if tot > 0 else 100.0
     now_str = datetime.now().strftime("%H:%M:%S WIB")
 
-    # Header Bar Publik Responsif
+    # Header Bar Publik Tanpa Petir
     c_brand, c_nav = st.columns([0.7, 0.3], vertical_alignment="center")
     with c_brand:
-        st.markdown("### ⚡ PulseWatch Status")
+        st.markdown("### SentinelCore System Status")
     with c_nav:
         st.write("")
         if st.button("🔐 Login Operator", use_container_width=True):
@@ -157,8 +157,8 @@ if not st.session_state.current_user:
     with center_box:
         st.write("")
         st.write("")
-        st.markdown("### PulseWatch")
-        st.caption("Masuk ke dashboard monitoring sistem")
+        st.markdown("### SentinelCore")
+        st.caption("Infrastruktur monitoring & telemetry platform")
         
         t_login, t_reg = st.tabs(["Login", "Buat Akun"])
         with t_login:
@@ -257,8 +257,8 @@ with st.sidebar:
                 if webhook_in:
                     ok = engine.send_discord_notification(
                         webhook_url=webhook_in,
-                        title="🧪 PulseWatch Webhook Test",
-                        description="Koneksi antara **PulseWatch Dashboard** dan server Discord berhasil terhubung dengan sempurna!",
+                        title="🧪 SentinelCore Webhook Test",
+                        description="Koneksi antara **SentinelCore Dashboard** dan server Discord berhasil terhubung dengan sempurna!",
                         color=3447003,
                         fields=[
                             {"name": "Status", "value": "Siap menerima alert outage", "inline": True},

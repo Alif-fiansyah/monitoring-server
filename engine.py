@@ -12,7 +12,7 @@ def send_discord_notification(webhook_url: str, title: str, description: str, co
         return False
     
     payload = {
-        "username": "PulseWatch Radar",
+        "username": "SentinelCore Alert",
         "avatar_url": "https://img.icons8.com/fluency/96/activity-history.png",
         "embeds": [
             {
@@ -20,7 +20,7 @@ def send_discord_notification(webhook_url: str, title: str, description: str, co
                 "description": description,
                 "color": color,
                 "fields": fields or [],
-                "footer": {"text": "PulseWatch Observability System • 2026"},
+                "footer": {"text": "SentinelCore Observability System • 2026"},
                 "timestamp": datetime.utcnow().isoformat()
             }
         ]
@@ -53,7 +53,7 @@ def get_ssl_expiry_days(url: str):
 def ping_target(url: str, timeout: float = 6.0):
     start = time.perf_counter()
     try:
-        headers = {"User-Agent": "PulseWatch-Observability-Agent/1.0"}
+        headers = {"User-Agent": "SentinelCore-Agent/1.0"}
         with httpx.Client(timeout=timeout, follow_redirects=True, headers=headers) as client:
             resp = client.get(url)
             latency = int((time.perf_counter() - start) * 1000)
@@ -125,7 +125,7 @@ def run_health_check_for_user(user_id: int):
                 send_discord_notification(
                     webhook_url=webhook_url,
                     title="🚨 INCIDENT ALERT: Service is DOWN",
-                    description=f"Endpoint **{mon['name']}** mengalami kegagalan akses dan tidak merespon dengan baik.",
+                    description=f"Endpoint **{mon['name']}** mengalami gangguan dan tidak merespon.",
                     color=15158332,
                     fields=[
                         {"name": "Nama Layanan", "value": mon["name"], "inline": True},
