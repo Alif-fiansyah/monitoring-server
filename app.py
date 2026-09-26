@@ -9,7 +9,6 @@ import ui_helpers
 
 st.set_page_config(
     page_title="SentinelCore",
-    page_icon="📡",
     layout="wide",
     initial_sidebar_state="collapsed"
 )
@@ -18,6 +17,28 @@ db.init_db()
 ui_helpers.load_css()
 
 query_view = st.query_params.get("view", "dashboard")
+
+def get_performance_badge(latency_ms: int, is_up: bool) -> str:
+    if not is_up:
+        return ""
+    if latency_ms < 300:
+        return '<span class="badge-perf-fast">FAST</span>'
+    elif latency_ms <= 800:
+        return '<span class="badge-perf-normal">MODERATE</span>'
+    else:
+        return '<span class="badge-perf-slow">DEGRADED</span>'
+
+def get_latency_color(avg_latency: int) -> str:
+    if avg_latency == 0:
+        return "#64748b"
+    elif avg_latency < 300:
+        return "#22c55e"
+    elif avg_latency <= 800:
+        return "#38bdf8"
+    elif avg_latency <= 1500:
+        return "#facc15"
+    else:
+        return "#ef4444"
 
 # =========================================================
 # MODE 1: PUBLIC STATUS PAGE (?view=status)
@@ -32,13 +53,12 @@ if query_view == "status":
     uptime_val = round((up / tot) * 100, 1) if tot > 0 else 100.0
     now_str = datetime.now().strftime("%H:%M:%S WIB")
 
-    # Header Bar Publik Tanpa Petir
-    c_brand, c_nav = st.columns([0.7, 0.3], vertical_alignment="center")
+    c_brand, c_nav = st.columns([0.75, 0.25], vertical_alignment="center")
     with c_brand:
         st.markdown("### SentinelCore System Status")
     with c_nav:
         st.write("")
-        if st.button("🔐 Login Operator", use_container_width=True):
+        if st.button("Login Operator", use_container_width=True):
             st.query_params["view"] = "dashboard"
             st.rerun()
 
@@ -87,6 +107,7 @@ if query_view == "status":
             ssl_badge = '<span style="color:#64748b; font-size:10.5px; font-family:monospace;">NO SSL</span>'
 
         status_badge = '<span class="badge-ok">OPERATIONAL</span>' if is_up else '<span class="badge-fail">OUTAGE</span>'
+        perf_badge = get_performance_badge(mon["last_latency_ms"], is_up)
 
         with st.container():
             c_info, c_spark = st.columns([0.58, 0.42])
@@ -96,6 +117,7 @@ if query_view == "status":
                         "endpoint_card",
                         name=mon["name"],
                         status_badge=status_badge,
+                        perf_badge=perf_badge,
                         ssl_badge=ssl_badge,
                         url=mon["url"],
                         server=mon.get("server_header") or "-",
@@ -183,7 +205,7 @@ if not st.session_state.current_user:
                         st.error("Gagal membuat akun")
 
         st.write("")
-        if st.button("🌐 Lihat Halaman Status Publik", use_container_width=True):
+        if st.button("Lihat Halaman Status Publik", use_container_width=True):
             st.query_params["view"] = "status"
             st.rerun()
     st.stop()
@@ -257,7 +279,7 @@ with st.sidebar:
                 if webhook_in:
                     ok = engine.send_discord_notification(
                         webhook_url=webhook_in,
-                        title="🧪 SentinelCore Webhook Test",
+                        title="SentinelCore Webhook Test",
                         description="Koneksi antara **SentinelCore Dashboard** dan server Discord berhasil terhubung dengan sempurna!",
                         color=3447003,
                         fields=[
@@ -318,6 +340,9 @@ down = tot - up
 avg_l = int(sum(m["last_latency_ms"] for m in monitors) / tot) if tot > 0 else 0
 uptime_val = round((up / tot) * 100, 1)
 
+# Warna Dinamis untuk Rata-rata Latensi
+latency_color = get_latency_color(avg_l)
+
 with st.container():
     k1, k2, k3, k4 = st.columns(4)
     with k1:
@@ -346,7 +371,7 @@ with st.container():
                 "kpi_card", 
                 label="Rata-rata Latensi", 
                 value=f"{avg_l} ms", 
-                color="#38bdf8"
+                color=latency_color
             ), 
             unsafe_allow_html=True
         )
@@ -384,6 +409,7 @@ with t_list:
             ssl_badge = '<span style="color:#64748b; font-size:10.5px; font-family:monospace;">NO SSL</span>'
 
         status_badge = '<span class="badge-ok">UP 200</span>' if is_up else '<span class="badge-fail">DOWN</span>'
+        perf_badge = get_performance_badge(mon["last_latency_ms"], is_up)
 
         with st.container():
             c_info, c_spark, c_del = st.columns([0.50, 0.40, 0.10])
@@ -394,6 +420,7 @@ with t_list:
                         "endpoint_card",
                         name=mon["name"],
                         status_badge=status_badge,
+                        perf_badge=perf_badge,
                         ssl_badge=ssl_badge,
                         url=mon["url"],
                         server=mon.get("server_header") or "-",
