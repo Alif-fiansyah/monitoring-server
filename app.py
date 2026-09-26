@@ -98,7 +98,7 @@ with st.sidebar:
                 st.error("Nama wajib diisi dan URL harus diawali http/https.")
 
 # --- TOP HEADER & CONTROLS ---
-c_head, c_refresh_opt, c_btn = st.columns([0.62, 0.22, 0.16])
+c_head, c_refresh_opt, c_btn = st.columns([0.58, 0.24, 0.18], vertical_alignment="bottom")
 with c_head:
     st.markdown("### Status Infrastruktur")
     st.caption("Pemeriksaan ketersediaan endpoint, latensi HTTP, SSL, dan Server Header Inspector")
@@ -112,7 +112,7 @@ with c_refresh_opt:
     )
 
 with c_btn:
-    manual_check = st.button("Check Now", use_container_width=True)
+    manual_check = st.button("Check Now", use_container_width=True, type="primary")
 
 # Logika Interval Auto-Refresh
 refresh_ms_map = {
