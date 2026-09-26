@@ -40,6 +40,65 @@ def get_latency_color(avg_latency: int) -> str:
     else:
         return "#ef4444"
 
+# --- DEEP-DIVE MODAL DIALOG ---
+@st.dialog("Telemetri Endpoint Inspector", width="large")
+def show_endpoint_dialog(monitor: dict):
+    pings = db.get_ping_logs(monitor["id"], limit=50)
+    
+    st.markdown(f"### {monitor['name']}")
+    st.caption(f"Target: `{monitor['url']}`")
+    
+    if not pings:
+        st.info("Belum ada rekaman riwayat latensi untuk endpoint ini.")
+        return
+
+    df = pd.DataFrame(pings)
+    latencies = df["latency_ms"].tolist()
+    min_lat = min(latencies)
+    avg_lat = int(sum(latencies) / len(latencies))
+    max_lat = max(latencies)
+    
+    # 3 Metrik Utama di Modal
+    m1, m2, m3 = st.columns(3)
+    m1.metric("Latensi Tercepat", f"{min_lat} ms")
+    m2.metric("Rata-rata Respon", f"{avg_lat} ms")
+    m3.metric("Puncak Tertinggi", f"{max_lat} ms")
+    
+    st.write("")
+    st.markdown("**Grafik Riwayat Latensi (50 Ping Terakhir)**")
+    
+    fig = go.Figure()
+    fig.add_trace(go.Scatter(
+        x=df["checked_at"],
+        y=df["latency_ms"],
+        mode="lines+markers",
+        line=dict(color="#38bdf8", width=2),
+        marker=dict(size=4, color="#38bdf8"),
+        fill="tozeroy",
+        fillcolor="rgba(56, 189, 248, 0.08)",
+        name="Latensi (ms)"
+    ))
+    fig.update_layout(
+        height=240,
+        margin=dict(l=0, r=0, t=10, b=10),
+        plot_bgcolor="rgba(0,0,0,0)",
+        paper_bgcolor="rgba(0,0,0,0)",
+        xaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=10, color="#64748b")),
+        yaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=10, color="#64748b"), title="ms"),
+    )
+    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+    
+    # Rincian Metadata Server
+    st.markdown("**Metadata Server Header**")
+    meta_df = pd.DataFrame([
+        {"Komponen": "Web Server / Gateway", "Nilai": monitor.get("server_header") or "-"},
+        {"Komponen": "MIME Content Type", "Nilai": monitor.get("content_type") or "-"},
+        {"Komponen": "Ukuran Respon Rata-rata", "Nilai": f"{monitor.get('response_size_kb') or 0.0} KB"},
+        {"Komponen": "Masa Berlaku SSL", "Nilai": f"{monitor.get('ssl_days_left')} hari" if monitor.get('ssl_days_left') else "Tidak Ada"}
+    ])
+    st.dataframe(meta_df, use_container_width=True, hide_index=True)
+
+
 # =========================================================
 # MODE 1: PUBLIC STATUS PAGE (?view=status)
 # =========================================================
@@ -340,7 +399,6 @@ down = tot - up
 avg_l = int(sum(m["last_latency_ms"] for m in monitors) / tot) if tot > 0 else 0
 uptime_val = round((up / tot) * 100, 1)
 
-# Warna Dinamis untuk Rata-rata Latensi
 latency_color = get_latency_color(avg_l)
 
 with st.container():
@@ -412,7 +470,8 @@ with t_list:
         perf_badge = get_performance_badge(mon["last_latency_ms"], is_up)
 
         with st.container():
-            c_info, c_spark, c_del = st.columns([0.50, 0.40, 0.10])
+            # Kolom: Info (48%), Sparkline (38%), Tombol Aksi Detail & Hapus (14%)
+            c_info, c_spark, c_actions = st.columns([0.48, 0.38, 0.14])
             
             with c_info:
                 st.markdown(
@@ -458,9 +517,11 @@ with t_list:
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
-            with c_del:
+            with c_actions:
                 st.write("")
-                if st.button("Hapus", key=f"d_{mon['id']}"):
+                if st.button("Detail", key=f"det_{mon['id']}", use_container_width=True):
+                    show_endpoint_dialog(mon)
+                if st.button("Hapus", key=f"d_{mon['id']}", use_container_width=True):
                     db.delete_monitor(mon["id"], user_id)
                     st.rerun()
 
