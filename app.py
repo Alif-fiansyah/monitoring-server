@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from datetime import datetime
 from streamlit_autorefresh import st_autorefresh
 import db
 import engine
@@ -15,10 +16,147 @@ st.set_page_config(
 db.init_db()
 ui_helpers.load_css()
 
+# Cek mode query param (misal: ?view=status)
+query_view = st.query_params.get("view", "dashboard")
+
+# =========================================================
+# MODE 1: PUBLIC STATUS PAGE (?view=status)
+# =========================================================
+if query_view == "status":
+    # Auto-refresh publik setiap 30 detik
+    st_autorefresh(interval=30 * 1000, limit=None, key="public_status_autorefresh")
+    
+    # Ambil seluruh monitor publik
+    public_monitors = db.get_all_public_monitors()
+    tot = len(public_monitors)
+    up = sum(1 for m in public_monitors if m["status"] == "UP")
+    down = tot - up
+    uptime_val = round((up / tot) * 100, 1) if tot > 0 else 100.0
+    now_str = datetime.now().strftime("%H:%M:%S WIB")
+
+    # Header Bar Publik
+    c_brand, c_nav = st.columns([0.8, 0.2], vertical_alignment="center")
+    with c_brand:
+        st.markdown("## ⚡ PulseWatch System Status")
+    with c_nav:
+        st.write("")
+        if st.button("🔐 Login Operator", use_container_width=True):
+            st.query_params["view"] = "dashboard"
+            st.rerun()
+
+    # Banner Status
+    if down == 0:
+        st.markdown(
+            ui_helpers.render_template(
+                "status_banner",
+                bg_color="linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(15, 23, 42, 0.6))",
+                border_color="rgba(34, 197, 94, 0.3)",
+                dot_color="#22c55e",
+                headline="Semua Sistem Beroperasi Normal (All Systems Operational)",
+                updated_at=now_str,
+                uptime_sla=uptime_val
+            ),
+            unsafe_allow_html=True
+        )
+    else:
+        st.markdown(
+            ui_helpers.render_template(
+                "status_banner",
+                bg_color="linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.6))",
+                border_color="rgba(239, 68, 68, 0.4)",
+                dot_color="#ef4444",
+                headline=f"Insiden Terdeteksi: {down} Layanan Mengalami Gangguan",
+                updated_at=now_str,
+                uptime_sla=uptime_val
+            ),
+            unsafe_allow_html=True
+        )
+
+    # Daftar Layanan Publik
+    st.markdown("#### Layanan yang Dipantau")
+    for mon in public_monitors:
+        pings = db.get_ping_logs(mon["id"], limit=35)
+        is_up = mon["status"] == "UP"
+        
+        ssl_days = mon.get("ssl_days_left")
+        if ssl_days is not None:
+            if ssl_days > 30:
+                ssl_badge = f'<span class="badge-ssl-ok">SSL {ssl_days}d</span>'
+            elif ssl_days > 7:
+                ssl_badge = f'<span class="badge-ssl-warn">SSL {ssl_days}d exp</span>'
+            else:
+                ssl_badge = f'<span class="badge-ssl-err">SSL {ssl_days}d exp</span>'
+        else:
+            ssl_badge = '<span style="color:#64748b; font-size:11px; font-family:monospace;">NO SSL</span>'
+
+        status_badge = '<span class="badge-ok">OPERATIONAL</span>' if is_up else '<span class="badge-fail">OUTAGE</span>'
+
+        with st.container():
+            c_info, c_spark = st.columns([0.55, 0.45])
+            with c_info:
+                st.markdown(
+                    ui_helpers.render_template(
+                        "endpoint_card",
+                        name=mon["name"],
+                        status_badge=status_badge,
+                        ssl_badge=ssl_badge,
+                        url=mon["url"],
+                        server=mon.get("server_header") or "-",
+                        size_kb=mon.get("response_size_kb") or 0.0,
+                        content_type=mon.get("content_type") or "-",
+                        latency=mon["last_latency_ms"],
+                        last_checked=mon["last_checked_at"] or "-"
+                    ),
+                    unsafe_allow_html=True
+                )
+                if pings:
+                    bars_tags = "".join([f'<div class="{"bar-pill-up" if p["is_up"] else "bar-pill-down"}"></div>' for p in pings[-20:]])
+                    st.markdown(ui_helpers.render_template("strip_bar", bars=bars_tags), unsafe_allow_html=True)
+            
+            with c_spark:
+                if pings:
+                    df = pd.DataFrame(pings)
+                    fig = go.Figure()
+                    fig.add_trace(go.Scatter(
+                        x=df["checked_at"],
+                        y=df["latency_ms"],
+                        mode="lines",
+                        line=dict(color="#38bdf8", width=1.5),
+                        fill="tozeroy",
+                        fillcolor="rgba(56, 189, 248, 0.05)"
+                    ))
+                    fig.update_layout(
+                        height=85,
+                        margin=dict(l=0, r=0, t=10, b=0),
+                        plot_bgcolor="rgba(0,0,0,0)",
+                        paper_bgcolor="rgba(0,0,0,0)",
+                        xaxis=dict(showgrid=False, showticklabels=False),
+                        yaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=9, color="#64748b")),
+                    )
+                    st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
+            st.write("")
+
+    # Catatan Insiden Terakhir
+    st.write("")
+    st.divider()
+    st.markdown("#### Riwayat Insiden Terakhir")
+    public_incidents = db.get_all_public_incidents()
+    if not public_incidents:
+        st.caption("Tidak ada riwayat downtime yang tercatat.")
+    else:
+        df_inc = pd.DataFrame(public_incidents)[["monitor_name", "url", "error_message", "started_at", "resolved_at", "duration_minutes", "status"]]
+        df_inc.columns = ["Endpoint", "URL", "Penyebab", "Mulai Down", "Waktu Pulih", "Durasi (m)", "Status"]
+        st.dataframe(df_inc, use_container_width=True, hide_index=True)
+
+    st.stop()
+
+
+# =========================================================
+# MODE 2: OPERATOR DASHBOARD (AUTH & ADMIN)
+# =========================================================
 if "current_user" not in st.session_state:
     st.session_state.current_user = None
 
-# ================= AUTH VIEW =================
 if not st.session_state.current_user:
     _, center_box, _ = st.columns([1, 1.2, 1])
     with center_box:
@@ -48,9 +186,14 @@ if not st.session_state.current_user:
                         st.success("Akun berhasil dibuat. Silakan login.")
                     else:
                         st.error("Gagal membuat akun")
+
+        st.write("")
+        if st.button("🌐 Lihat Halaman Status Publik", use_container_width=True):
+            st.query_params["view"] = "status"
+            st.rerun()
     st.stop()
 
-# ================= DASHBOARD UTAMA =================
+# Dashboard Operator
 user = st.session_state.current_user
 user_id = user["id"]
 monitors = db.get_user_monitors(user_id)
@@ -67,13 +210,18 @@ with st.sidebar:
         unsafe_allow_html=True
     )
     
-    if st.button("Keluar Sesi", use_container_width=True):
-        st.session_state.current_user = None
-        st.rerun()
+    col_out, col_pub = st.columns(2)
+    with col_out:
+        if st.button("Keluar Sesi", use_container_width=True):
+            st.session_state.current_user = None
+            st.rerun()
+    with col_pub:
+        if st.button("Status Page", use_container_width=True):
+            st.query_params["view"] = "status"
+            st.rerun()
         
     st.write("")
     
-    # Form Tambah Endpoint
     presets_data = ui_helpers.load_presets()
     preset_labels = [p["label"] for p in presets_data]
     
@@ -117,7 +265,7 @@ with st.sidebar:
                         webhook_url=webhook_in,
                         title="🧪 PulseWatch Webhook Test",
                         description="Koneksi antara **PulseWatch Dashboard** dan server Discord berhasil terhubung dengan sempurna!",
-                        color=3447003, # Biru (#3498db)
+                        color=3447003,
                         fields=[
                             {"name": "Status", "value": "Siap menerima alert outage", "inline": True},
                             {"name": "Operator", "value": username, "inline": True}

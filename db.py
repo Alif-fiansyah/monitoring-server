@@ -26,7 +26,6 @@ def init_db():
     )
     """)
     
-    # Auto-migration kolom discord_webhook jika tabel users sudah ada
     try:
         c.execute("ALTER TABLE users ADD COLUMN discord_webhook TEXT DEFAULT ''")
     except sqlite3.OperationalError:
@@ -147,6 +146,15 @@ def get_user_monitors(user_id):
     conn.close()
     return [dict(r) for r in rows]
 
+def get_all_public_monitors():
+    """Mengambil semua monitor aktif untuk status page publik."""
+    conn = get_connection()
+    rows = conn.cursor().execute(
+        "SELECT * FROM monitors ORDER BY id DESC"
+    ).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
 def delete_monitor(monitor_id, user_id):
     conn = get_connection()
     conn.cursor().execute("DELETE FROM monitors WHERE id = ? AND user_id = ?", (monitor_id, user_id))
@@ -171,5 +179,17 @@ def get_incidents(user_id):
         WHERE m.user_id = ? 
         ORDER BY i.started_at DESC
     """, (user_id,)).fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_all_public_incidents():
+    """Mengambil riwayat insiden untuk status page publik."""
+    conn = get_connection()
+    rows = conn.cursor().execute("""
+        SELECT i.*, m.name as monitor_name, m.url 
+        FROM incidents i 
+        JOIN monitors m ON i.monitor_id = m.id 
+        ORDER BY i.started_at DESC LIMIT 20
+    """).fetchall()
     conn.close()
     return [dict(r) for r in rows]
