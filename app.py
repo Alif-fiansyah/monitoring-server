@@ -1,6 +1,7 @@
 import streamlit as st
 import pandas as pd
 import plotly.graph_objects as go
+from streamlit_autorefresh import st_autorefresh
 import db
 import engine
 import ui_helpers
@@ -11,6 +12,7 @@ st.set_page_config(
     layout="wide"
 )
 
+# Inisialisasi Database & Assets
 db.init_db()
 ui_helpers.load_css()
 
@@ -95,17 +97,42 @@ with st.sidebar:
             else:
                 st.error("Nama wajib diisi dan URL harus diawali http/https.")
 
-# --- TOP HEADER ---
-c_head, c_btn = st.columns([0.82, 0.18])
+# --- TOP HEADER & CONTROLS ---
+c_head, c_refresh_opt, c_btn = st.columns([0.62, 0.22, 0.16])
 with c_head:
     st.markdown("### Status Infrastruktur")
     st.caption("Pemeriksaan ketersediaan endpoint, latensi HTTP, SSL, dan Server Header Inspector")
+
+with c_refresh_opt:
+    refresh_rate = st.selectbox(
+        "Interval Auto-Refresh",
+        options=["Off (Manual)", "Setiap 30 Detik", "Setiap 1 Menit", "Setiap 5 Menit"],
+        index=0,
+        label_visibility="collapsed"
+    )
+
 with c_btn:
-    st.write("")
-    if st.button("Check Now", use_container_width=True):
-        with st.spinner("Pinging & inspecting headers..."):
-            engine.run_health_check_for_user(user_id)
-            st.rerun()
+    manual_check = st.button("Check Now", use_container_width=True)
+
+# Logika Interval Auto-Refresh
+refresh_ms_map = {
+    "Off (Manual)": 0,
+    "Setiap 30 Detik": 30 * 1000,
+    "Setiap 1 Menit": 60 * 1000,
+    "Setiap 5 Menit": 300 * 1000
+}
+chosen_interval = refresh_ms_map.get(refresh_rate, 0)
+
+if chosen_interval > 0:
+    # Trigger refresh timer
+    refresh_count = st_autorefresh(interval=chosen_interval, limit=None, key="uptime_autorefresh")
+    if refresh_count > 0:
+        engine.run_health_check_for_user(user_id)
+
+if manual_check:
+    with st.spinner("Pinging & inspecting headers..."):
+        engine.run_health_check_for_user(user_id)
+        st.rerun()
 
 if not monitors:
     st.info("Belum ada endpoint yang dipantau. Tambahkan target baru melalui menu di sidebar sebelah kiri.")

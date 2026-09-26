@@ -2,3 +2,4 @@ streamlit
 httpx
 plotly
 pandas
+streamlit-autorefresh
