@@ -1,0 +1,149 @@
+[data-testid="InputInstructions"] { 
+    display: none !important; 
+}
+
+.block-container {
+    max-width: 1200px !important;
+    padding-top: 2rem !important;
+    padding-bottom: 3rem !important;
+}
+
+[data-testid="stSidebar"] {
+    background-color: #0b0f17 !important;
+    border-right: 1px solid #1a2233 !important;
+}
+
+.user-profile-card {
+    background: linear-gradient(145deg, #111726, #0e1320);
+    border: 1px solid rgba(56, 189, 248, 0.15);
+    border-radius: 10px;
+    padding: 14px 16px;
+    margin-bottom: 16px;
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.3);
+}
+
+.avatar-circle {
+    width: 38px;
+    height: 38px;
+    background: linear-gradient(135deg, #0284c7, #2563eb);
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 15px;
+    color: #ffffff;
+    box-shadow: 0 0 12px rgba(37, 99, 235, 0.4);
+}
+
+.user-badge-online {
+    width: 8px;
+    height: 8px;
+    background-color: #22c55e;
+    border-radius: 50%;
+    display: inline-block;
+    box-shadow: 0 0 8px #22c55e;
+}
+
+.metric-sub {
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    color: #64748b;
+    letter-spacing: 0.5px;
+}
+
+.metric-val-main {
+    font-size: 24px;
+    font-weight: 700;
+    margin-top: 4px;
+    font-family: monospace;
+}
+
+.badge-ok {
+    background: rgba(34, 197, 94, 0.1);
+    color: #22c55e;
+    border: 1px solid rgba(34, 197, 94, 0.2);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.badge-fail {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.2);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.badge-ssl-ok {
+    background: rgba(14, 165, 233, 0.1);
+    color: #38bdf8;
+    border: 1px solid rgba(14, 165, 233, 0.25);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.badge-ssl-warn {
+    background: rgba(234, 179, 8, 0.1);
+    color: #eab308;
+    border: 1px solid rgba(234, 179, 8, 0.25);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.badge-ssl-err {
+    background: rgba(239, 68, 68, 0.1);
+    color: #ef4444;
+    border: 1px solid rgba(239, 68, 68, 0.25);
+    font-size: 11px;
+    font-weight: 600;
+    padding: 2px 7px;
+    border-radius: 4px;
+    font-family: monospace;
+}
+
+.meta-tag {
+    background: #161e2e;
+    border: 1px solid #23304a;
+    color: #94a3b8;
+    font-family: monospace;
+    font-size: 11px;
+    padding: 3px 8px;
+    border-radius: 4px;
+    margin-right: 6px;
+    display: inline-block;
+}
+
+.bar-strip {
+    display: flex;
+    gap: 3px;
+    align-items: center;
+    margin-top: 10px;
+}
+
+.bar-pill-up {
+    width: 6px;
+    height: 18px;
+    background-color: #22c55e;
+    border-radius: 2px;
+}
+
+.bar-pill-down {
+    width: 6px;
+    height: 18px;
+    background-color: #ef4444;
+    border-radius: 2px;
+}

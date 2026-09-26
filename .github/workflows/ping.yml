@@ -1,0 +1,29 @@
+name: Scheduled Uptime Health Check
+
+on:
+  schedule:
+    # Berjalan setiap 15 menit (format cron: m h dom mon dow)
+    - cron: '*/15 * * * *'
+  workflow_dispatch: # Memungkinkan kamu menekan tombol "Run workflow" secara manual di GitHub
+
+jobs:
+  ping-monitors:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout Repository
+        uses: actions/checkout@v4
+
+      - name: Setup Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+
+      - name: Install Dependencies
+        run: |
+          pip install -r requirements.txt
+
+      - name: Execute Health Check Ping
+        run: |
+          python worker.py
