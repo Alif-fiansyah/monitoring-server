@@ -21,9 +21,16 @@ def init_db():
         id INTEGER PRIMARY KEY AUTOINCREMENT,
         username TEXT UNIQUE NOT NULL,
         password_hash TEXT NOT NULL,
+        discord_webhook TEXT DEFAULT '',
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )
     """)
+    
+    # Auto-migration kolom discord_webhook jika tabel users sudah ada
+    try:
+        c.execute("ALTER TABLE users ADD COLUMN discord_webhook TEXT DEFAULT ''")
+    except sqlite3.OperationalError:
+        pass
     
     c.execute("""
     CREATE TABLE IF NOT EXISTS monitors (
@@ -43,7 +50,6 @@ def init_db():
     )
     """)
     
-    # Auto-migration kolom baru
     columns_to_add = [
         ("ssl_days_left", "INTEGER"),
         ("server_header", "TEXT DEFAULT '-'"),
@@ -99,11 +105,29 @@ def create_user(username, password):
 def authenticate_user(username, password):
     conn = get_connection()
     row = conn.cursor().execute(
-        "SELECT id, username FROM users WHERE username = ? AND password_hash = ?",
+        "SELECT id, username, discord_webhook FROM users WHERE username = ? AND password_hash = ?",
         (username.strip(), hash_password(password))
     ).fetchone()
     conn.close()
     return dict(row) if row else None
+
+def update_user_webhook(user_id: int, webhook_url: str):
+    conn = get_connection()
+    conn.cursor().execute(
+        "UPDATE users SET discord_webhook = ? WHERE id = ?",
+        (webhook_url.strip(), user_id)
+    )
+    conn.commit()
+    conn.close()
+
+def get_user_webhook(user_id: int) -> str:
+    conn = get_connection()
+    row = conn.cursor().execute(
+        "SELECT discord_webhook FROM users WHERE id = ?",
+        (user_id,)
+    ).fetchone()
+    conn.close()
+    return row["discord_webhook"] if row and row["discord_webhook"] else ""
 
 def add_monitor(user_id, name, url):
     conn = get_connection()

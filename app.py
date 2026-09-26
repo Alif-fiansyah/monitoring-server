@@ -12,7 +12,6 @@ st.set_page_config(
     layout="wide"
 )
 
-# Inisialisasi Database & Assets
 db.init_db()
 ui_helpers.load_css()
 
@@ -56,6 +55,7 @@ user = st.session_state.current_user
 user_id = user["id"]
 monitors = db.get_user_monitors(user_id)
 tot_monitors = len(monitors)
+current_webhook = db.get_user_webhook(user_id)
 
 # --- SIDEBAR ---
 with st.sidebar:
@@ -73,6 +73,7 @@ with st.sidebar:
         
     st.write("")
     
+    # Form Tambah Endpoint
     presets_data = ui_helpers.load_presets()
     preset_labels = [p["label"] for p in presets_data]
     
@@ -96,6 +97,38 @@ with st.sidebar:
                 st.rerun()
             else:
                 st.error("Nama wajib diisi dan URL harus diawali http/https.")
+                
+    st.write("")
+    
+    # Pengaturan Discord Webhook Alert
+    st.markdown("**DISCORD ALERT**")
+    with st.expander("Pengaturan Webhook", expanded=bool(not current_webhook)):
+        webhook_in = st.text_input("Webhook URL", value=current_webhook, type="password", placeholder="https://discord.com/api/webhooks/...")
+        c_wh_save, c_wh_test = st.columns([1, 1])
+        with c_wh_save:
+            if st.button("Simpan", use_container_width=True):
+                db.update_user_webhook(user_id, webhook_in)
+                st.success("Tersimpan!")
+                st.rerun()
+        with c_wh_test:
+            if st.button("Kirim Tes", use_container_width=True):
+                if webhook_in:
+                    ok = engine.send_discord_notification(
+                        webhook_url=webhook_in,
+                        title="🧪 PulseWatch Webhook Test",
+                        description="Koneksi antara **PulseWatch Dashboard** dan server Discord berhasil terhubung dengan sempurna!",
+                        color=3447003, # Biru (#3498db)
+                        fields=[
+                            {"name": "Status", "value": "Siap menerima alert outage", "inline": True},
+                            {"name": "Operator", "value": username, "inline": True}
+                        ]
+                    )
+                    if ok:
+                        st.toast("Pesan tes berhasil dikirim ke Discord!", icon="✅")
+                    else:
+                        st.error("Gagal mengirim ke Webhook Discord. Periksa URL kembali.")
+                else:
+                    st.warning("Masukkan URL webhook terlebih dahulu.")
 
 # --- TOP HEADER & CONTROLS ---
 c_head, c_refresh_opt, c_btn = st.columns([0.58, 0.24, 0.18], vertical_alignment="bottom")
@@ -114,7 +147,6 @@ with c_refresh_opt:
 with c_btn:
     manual_check = st.button("Check Now", use_container_width=True, type="primary")
 
-# Logika Interval Auto-Refresh
 refresh_ms_map = {
     "Off (Manual)": 0,
     "Setiap 30 Detik": 30 * 1000,
@@ -124,7 +156,6 @@ refresh_ms_map = {
 chosen_interval = refresh_ms_map.get(refresh_rate, 0)
 
 if chosen_interval > 0:
-    # Trigger refresh timer
     refresh_count = st_autorefresh(interval=chosen_interval, limit=None, key="uptime_autorefresh")
     if refresh_count > 0:
         engine.run_health_check_for_user(user_id)
