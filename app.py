@@ -10,23 +10,21 @@ import ui_helpers
 st.set_page_config(
     page_title="PulseWatch",
     page_icon="⚡",
-    layout="wide"
+    layout="wide",
+    initial_sidebar_state="collapsed"
 )
 
 db.init_db()
 ui_helpers.load_css()
 
-# Cek mode query param (misal: ?view=status)
 query_view = st.query_params.get("view", "dashboard")
 
 # =========================================================
 # MODE 1: PUBLIC STATUS PAGE (?view=status)
 # =========================================================
 if query_view == "status":
-    # Auto-refresh publik setiap 30 detik
     st_autorefresh(interval=30 * 1000, limit=None, key="public_status_autorefresh")
     
-    # Ambil seluruh monitor publik
     public_monitors = db.get_all_public_monitors()
     tot = len(public_monitors)
     up = sum(1 for m in public_monitors if m["status"] == "UP")
@@ -34,10 +32,10 @@ if query_view == "status":
     uptime_val = round((up / tot) * 100, 1) if tot > 0 else 100.0
     now_str = datetime.now().strftime("%H:%M:%S WIB")
 
-    # Header Bar Publik
-    c_brand, c_nav = st.columns([0.8, 0.2], vertical_alignment="center")
+    # Header Bar Publik Responsif
+    c_brand, c_nav = st.columns([0.7, 0.3], vertical_alignment="center")
     with c_brand:
-        st.markdown("## ⚡ PulseWatch System Status")
+        st.markdown("### ⚡ PulseWatch Status")
     with c_nav:
         st.write("")
         if st.button("🔐 Login Operator", use_container_width=True):
@@ -49,10 +47,10 @@ if query_view == "status":
         st.markdown(
             ui_helpers.render_template(
                 "status_banner",
-                bg_color="linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(15, 23, 42, 0.6))",
-                border_color="rgba(34, 197, 94, 0.3)",
+                bg_color="linear-gradient(135deg, rgba(34, 197, 94, 0.12), rgba(15, 23, 42, 0.7))",
+                border_color="rgba(34, 197, 94, 0.35)",
                 dot_color="#22c55e",
-                headline="Semua Sistem Beroperasi Normal (All Systems Operational)",
+                headline="Semua Sistem Beroperasi Normal",
                 updated_at=now_str,
                 uptime_sla=uptime_val
             ),
@@ -62,18 +60,17 @@ if query_view == "status":
         st.markdown(
             ui_helpers.render_template(
                 "status_banner",
-                bg_color="linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.6))",
-                border_color="rgba(239, 68, 68, 0.4)",
+                bg_color="linear-gradient(135deg, rgba(239, 68, 68, 0.15), rgba(15, 23, 42, 0.7))",
+                border_color="rgba(239, 68, 68, 0.45)",
                 dot_color="#ef4444",
-                headline=f"Insiden Terdeteksi: {down} Layanan Mengalami Gangguan",
+                headline=f"Insiden Terdeteksi: {down} Layanan Terganggu",
                 updated_at=now_str,
                 uptime_sla=uptime_val
             ),
             unsafe_allow_html=True
         )
 
-    # Daftar Layanan Publik
-    st.markdown("#### Layanan yang Dipantau")
+    st.markdown("##### Layanan yang Dipantau")
     for mon in public_monitors:
         pings = db.get_ping_logs(mon["id"], limit=35)
         is_up = mon["status"] == "UP"
@@ -87,12 +84,12 @@ if query_view == "status":
             else:
                 ssl_badge = f'<span class="badge-ssl-err">SSL {ssl_days}d exp</span>'
         else:
-            ssl_badge = '<span style="color:#64748b; font-size:11px; font-family:monospace;">NO SSL</span>'
+            ssl_badge = '<span style="color:#64748b; font-size:10.5px; font-family:monospace;">NO SSL</span>'
 
         status_badge = '<span class="badge-ok">OPERATIONAL</span>' if is_up else '<span class="badge-fail">OUTAGE</span>'
 
         with st.container():
-            c_info, c_spark = st.columns([0.55, 0.45])
+            c_info, c_spark = st.columns([0.58, 0.42])
             with c_info:
                 st.markdown(
                     ui_helpers.render_template(
@@ -126,20 +123,18 @@ if query_view == "status":
                         fillcolor="rgba(56, 189, 248, 0.05)"
                     ))
                     fig.update_layout(
-                        height=85,
+                        height=75,
                         margin=dict(l=0, r=0, t=10, b=0),
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
                         xaxis=dict(showgrid=False, showticklabels=False),
-                        yaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=9, color="#64748b")),
+                        yaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=8, color="#64748b")),
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
-            st.write("")
+            st.divider()
 
-    # Catatan Insiden Terakhir
     st.write("")
-    st.divider()
-    st.markdown("#### Riwayat Insiden Terakhir")
+    st.markdown("##### Riwayat Insiden Terakhir")
     public_incidents = db.get_all_public_incidents()
     if not public_incidents:
         st.caption("Tidak ada riwayat downtime yang tercatat.")
@@ -152,7 +147,7 @@ if query_view == "status":
 
 
 # =========================================================
-# MODE 2: OPERATOR DASHBOARD (AUTH & ADMIN)
+# MODE 2: OPERATOR DASHBOARD
 # =========================================================
 if "current_user" not in st.session_state:
     st.session_state.current_user = None
@@ -193,7 +188,7 @@ if not st.session_state.current_user:
             st.rerun()
     st.stop()
 
-# Dashboard Operator
+# Operator Panel
 user = st.session_state.current_user
 user_id = user["id"]
 monitors = db.get_user_monitors(user_id)
@@ -248,7 +243,6 @@ with st.sidebar:
                 
     st.write("")
     
-    # Pengaturan Discord Webhook Alert
     st.markdown("**DISCORD ALERT**")
     with st.expander("Pengaturan Webhook", expanded=bool(not current_webhook)):
         webhook_in = st.text_input("Webhook URL", value=current_webhook, type="password", placeholder="https://discord.com/api/webhooks/...")
@@ -279,7 +273,7 @@ with st.sidebar:
                     st.warning("Masukkan URL webhook terlebih dahulu.")
 
 # --- TOP HEADER & CONTROLS ---
-c_head, c_refresh_opt, c_btn = st.columns([0.58, 0.24, 0.18], vertical_alignment="bottom")
+c_head, c_refresh_opt, c_btn = st.columns([0.55, 0.25, 0.20], vertical_alignment="bottom")
 with c_head:
     st.markdown("### Status Infrastruktur")
     st.caption("Pemeriksaan ketersediaan endpoint, latensi HTTP, SSL, dan Server Header Inspector")
@@ -341,7 +335,7 @@ with st.container():
             ui_helpers.render_template(
                 "kpi_card", 
                 label="Endpoint Aktif", 
-                value=f'{up} <span style="font-size:14px;color:#64748b">/ {tot}</span>', 
+                value=f'{up} <span style="font-size:13px;color:#64748b">/ {tot}</span>', 
                 color="#f8fafc"
             ), 
             unsafe_allow_html=True
@@ -387,12 +381,12 @@ with t_list:
             else:
                 ssl_badge = f'<span class="badge-ssl-err">SSL {ssl_days}d exp</span>'
         else:
-            ssl_badge = '<span style="color:#64748b; font-size:11px; font-family:monospace;">NO SSL</span>'
+            ssl_badge = '<span style="color:#64748b; font-size:10.5px; font-family:monospace;">NO SSL</span>'
 
         status_badge = '<span class="badge-ok">UP 200</span>' if is_up else '<span class="badge-fail">DOWN</span>'
 
         with st.container():
-            c_info, c_spark, c_del = st.columns([0.48, 0.44, 0.08])
+            c_info, c_spark, c_del = st.columns([0.50, 0.40, 0.10])
             
             with c_info:
                 st.markdown(
@@ -428,12 +422,12 @@ with t_list:
                         fillcolor="rgba(56, 189, 248, 0.05)"
                     ))
                     fig.update_layout(
-                        height=90,
+                        height=80,
                         margin=dict(l=0, r=0, t=10, b=0),
                         plot_bgcolor="rgba(0,0,0,0)",
                         paper_bgcolor="rgba(0,0,0,0)",
                         xaxis=dict(showgrid=False, showticklabels=False),
-                        yaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=9, color="#64748b")),
+                        yaxis=dict(showgrid=True, gridcolor="#1e293b", tickfont=dict(size=8, color="#64748b")),
                     )
                     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
 
@@ -443,7 +437,7 @@ with t_list:
                     db.delete_monitor(mon["id"], user_id)
                     st.rerun()
 
-            st.write("")
+            st.divider()
 
 with t_logs:
     incidents = db.get_incidents(user_id)
