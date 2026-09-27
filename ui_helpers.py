@@ -1,5 +1,6 @@
 import os
 import json
+import re
 import streamlit as st
 
 def load_css():
@@ -14,9 +15,10 @@ def render_template(template_name: str, **kwargs) -> str:
         return ""
     with open(path, "r", encoding="utf-8") as f:
         template = f.read()
-    # Membersihkan karakter return baris yang dapat memicu markdown raw block
-    rendered = template.format(**kwargs).strip()
-    return rendered
+    rendered = template.format(**kwargs)
+    # Hapus spasi di awal baris agar Markdown tidak menganggapnya sebagai indented code block
+    rendered = re.sub(r'^\s+', '', rendered, flags=re.MULTILINE)
+    return rendered.strip()
 
 def load_presets():
     path = os.path.join("assets", "data", "presets.json")
