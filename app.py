@@ -58,7 +58,6 @@ def show_endpoint_dialog(monitor: dict):
     avg_lat = int(sum(latencies) / len(latencies))
     max_lat = max(latencies)
     
-    # 3 Metrik Utama di Modal
     m1, m2, m3 = st.columns(3)
     m1.metric("Latensi Tercepat", f"{min_lat} ms")
     m2.metric("Rata-rata Respon", f"{avg_lat} ms")
@@ -88,7 +87,6 @@ def show_endpoint_dialog(monitor: dict):
     )
     st.plotly_chart(fig, use_container_width=True, config={'displayModeBar': False})
     
-    # Rincian Metadata Server
     st.markdown("**Metadata Server Header**")
     meta_df = pd.DataFrame([
         {"Komponen": "Web Server / Gateway", "Nilai": monitor.get("server_header") or "-"},
@@ -121,7 +119,6 @@ if query_view == "status":
             st.query_params["view"] = "dashboard"
             st.rerun()
 
-    # Banner Status
     if down == 0:
         st.markdown(
             ui_helpers.render_template(
@@ -171,22 +168,21 @@ if query_view == "status":
         with st.container():
             c_info, c_spark = st.columns([0.58, 0.42])
             with c_info:
-                st.markdown(
-                    ui_helpers.render_template(
-                        "endpoint_card",
-                        name=mon["name"],
-                        status_badge=status_badge,
-                        perf_badge=perf_badge,
-                        ssl_badge=ssl_badge,
-                        url=mon["url"],
-                        server=mon.get("server_header") or "-",
-                        size_kb=mon.get("response_size_kb") or 0.0,
-                        content_type=mon.get("content_type") or "-",
-                        latency=mon["last_latency_ms"],
-                        last_checked=mon["last_checked_at"] or "-"
-                    ),
-                    unsafe_allow_html=True
+                card_html = ui_helpers.render_template(
+                    "endpoint_card",
+                    name=mon["name"],
+                    status_badge=status_badge,
+                    perf_badge=perf_badge,
+                    ssl_badge=ssl_badge,
+                    url=mon["url"],
+                    server=mon.get("server_header") or "-",
+                    size_kb=mon.get("response_size_kb") or 0.0,
+                    content_type=mon.get("content_type") or "-",
+                    latency=mon["last_latency_ms"],
+                    last_checked=mon["last_checked_at"] or "-"
                 )
+                st.markdown(card_html, unsafe_allow_html=True)
+                
                 if pings:
                     bars_tags = "".join([f'<div class="{"bar-pill-up" if p["is_up"] else "bar-pill-down"}"></div>' for p in pings[-20:]])
                     st.markdown(ui_helpers.render_template("strip_bar", bars=bars_tags), unsafe_allow_html=True)
@@ -470,26 +466,23 @@ with t_list:
         perf_badge = get_performance_badge(mon["last_latency_ms"], is_up)
 
         with st.container():
-            # Kolom: Info (48%), Sparkline (38%), Tombol Aksi Detail & Hapus (14%)
             c_info, c_spark, c_actions = st.columns([0.48, 0.38, 0.14])
             
             with c_info:
-                st.markdown(
-                    ui_helpers.render_template(
-                        "endpoint_card",
-                        name=mon["name"],
-                        status_badge=status_badge,
-                        perf_badge=perf_badge,
-                        ssl_badge=ssl_badge,
-                        url=mon["url"],
-                        server=mon.get("server_header") or "-",
-                        size_kb=mon.get("response_size_kb") or 0.0,
-                        content_type=mon.get("content_type") or "-",
-                        latency=mon["last_latency_ms"],
-                        last_checked=mon["last_checked_at"] or "-"
-                    ),
-                    unsafe_allow_html=True
+                card_html = ui_helpers.render_template(
+                    "endpoint_card",
+                    name=mon["name"],
+                    status_badge=status_badge,
+                    perf_badge=perf_badge,
+                    ssl_badge=ssl_badge,
+                    url=mon["url"],
+                    server=mon.get("server_header") or "-",
+                    size_kb=mon.get("response_size_kb") or 0.0,
+                    content_type=mon.get("content_type") or "-",
+                    latency=mon["last_latency_ms"],
+                    last_checked=mon["last_checked_at"] or "-"
                 )
+                st.markdown(card_html, unsafe_allow_html=True)
                 
                 if pings:
                     bars_tags = "".join([f'<div class="{"bar-pill-up" if p["is_up"] else "bar-pill-down"}"></div>' for p in pings[-20:]])
